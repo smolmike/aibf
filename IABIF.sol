@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.16;
 
 interface IABIF {
     function balanceOf(address owner) external view returns (uint256 balance);
