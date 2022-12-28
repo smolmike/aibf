@@ -1,6 +1,6 @@
 pragma solidity 0.8.16;
 
-interface IABIF {
+interface IAIBF {
     function balanceOf(address owner) external view returns (uint256 balance);
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
