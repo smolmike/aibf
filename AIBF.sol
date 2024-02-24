@@ -1,44 +1,120 @@
-// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.16;
 
 
-/*
-     88     888       888  .d88888b.   .d88888b.  8888888888
- .d88888b.  888   o   888 d88P" "Y88b d88P" "Y88b 888       
-d88P 88"88b 888  d8b  888 888     888 888     888 888       
-Y88b.88     888 d888b 888 888     888 888     888 8888888   
- "Y88888b.  888d88888b888 888     888 888     888 888       
-     88"88b 88888P Y88888 888     888 888     888 888       
-Y88b 88.88P 8888P   Y8888 Y88b. .d88P Y88b. .d88P 888       
- "Y88888P"  888P     Y888  "Y88888P"   "Y88888P"  888       
-     88                                                          
-*/
 
 
-pragma solidity 0.8.20;
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract WOOF is ERC20, ERC20Burnable, Ownable {
+contract AIBF is ERC721, Ownable {
+    using Address for address;
+    using Counters for Counters.Counter;
+    using SafeMath for uint256;
 
-  mapping(address => bool) controllers;
+    
+    uint256 public constant MAX_PUBLIC_MINT = 3;
+    uint256 public totalSupply;
+    uint256 public price = 0.01 ether;
+    uint256 public reserveSupply = 6;
+    uint256 public maxPerWallet = 3;
+    uint256 public constant MAX_SUPPLY = 306;
+    bool public saleActive; // public sale flag (false on deploy)
+    
 
-constructor(address initialOwner) ERC20("WOOF", "WOOF") Ownable(initialOwner) { }
+    constructor() ERC721("AI Best Friend", "AIBF") {}
 
-  function mint(address to, uint256 amount) external {
-    require(controllers[msg.sender], "Only controllers can mint");
-    _mint(to, amount);
-  }
+    //mint settings
+    modifier mintParameters(uint256 numberToMint) {
 
-  function burnFrom(address account, uint256 amount) public override {
-      if (controllers[msg.sender]) {
-          _burn(account, amount);
-      }
-      else {
-          super.burnFrom(account, amount);
-      }
-  }
+        uint256 currentTokens = balanceOf(msg.sender);
 
-  function addController(address controller) external onlyOwner {
-    controllers[controller] = true;
-  }
+        require(currentTokens + numberToMint <= maxPerWallet, "Exceeds maximum number of tokens per wallet");
+
+        require(saleActive, "Sale not live");
+        _;
+        require(numberToMint < MAX_PUBLIC_MINT, "Save some for the rest of us!");
+
+        require(msg.value == price * numberToMint, "Not enough to adopt a K9");
+
+        require(numberToMint > 0, "Zero mint");
+
+        require(totalSupply.add(numberToMint) <= MAX_SUPPLY, "Exceeds max supply");
+
+    
+    }
+
+     function _mintTokens(address to, uint256 numberToMint) internal {
+        require(numberToMint > 0, "Zero mint");
+        uint256 currentSupply_ = totalSupply; // memory variable
+        for (uint256 i; i < numberToMint; ++i) {
+            _safeMint(to, currentSupply_++); // mint then increment
+        }
+        totalSupply = currentSupply_; // update storage
+    }
+
+
+    //Function to set sale active
+
+    function setSaleActive(bool state) external onlyOwner {
+        saleActive = state;
+    }
+
+    // Mint for the Dog Groomer
+
+    function dogGroomer(address to, uint256 numberToMint) external onlyOwner {
+        uint256 _reserveSupply = reserveSupply;
+        require(numberToMint <= _reserveSupply, "Exceeds reserve limit");
+        reserveSupply = _reserveSupply - numberToMint;
+
+        _mintTokens(to, numberToMint);
+    }
+
+    //Public Mint
+
+    function mint(uint256 numberToMint) external payable mintParameters(numberToMint) {
+        _mintTokens(msg.sender, numberToMint);
+    }
+
+
+    // Take out ETH
+      function withdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        payable(msg.sender).transfer(balance);
+    }
+
+
+
+   // Set the Metadata
+
+    string private baseURI;
+
+      function _baseURI() internal view override returns (string memory) {
+        return baseURI;
+    }
+
+    function setMetadata(string memory metadata) public onlyOwner {
+        baseURI = metadata;
+    }
+
+    //Token Tracking
+    Counters.Counter private tokens;
+
+        function getTokensFromAddress(address wallet) public view returns(uint256[] memory) {
+        uint256 tokensHeld = balanceOf(wallet);
+        uint256 currentTokens = tokens.current();
+        uint256 x = 0;
+
+        uint256[] memory _tokens = new uint256[](tokensHeld);
+        
+        for (uint256 i;i < currentTokens;i++) {
+            if (ownerOf(i) == wallet) {
+                _tokens[x] = i;
+                x++;
+            }
+        }
+
+        return _tokens;
+    }
+
+    function maxSupply() external view returns(uint256) {
+        return tokens.current();
+    }
+}
