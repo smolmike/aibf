@@ -1,8 +1,55 @@
-pragma solidity ^0.8.16;
+// SPDX-License-Identifier: MIT
+
+
+/*
+
+           __.                                              
+        .-".'                      .--.            _..._    
+      .' .'                     .'    \       .-""  __ ""-. 
+     /  /                     .'       : --..:__.-""  ""-. \
+    :  :                     /         ;.d$$    sbp_.-""-:_:
+    ;  :                    : ._       :P .-.   ,"TP        
+    :   \                    \  T--...-; : d$b  :d$b        
+     \   `.                   \  `..'    ; $ $  ;$ $        
+      `.   "-.                 ).        : T$P  :T$P        
+        \..---^..             /           `-'    `._`._     
+       .'        "-.       .-"                     T$$$b    
+      /             "-._.-"               ._        '^' ;   
+     :                                    \.`.         /    
+     ;                                -.   \`."-._.-'-'     
+    :                                 .'\   \ \ \ \         
+    ;  ;                             /:  \   \ \ . ;        
+   :   :                            ,  ;  `.  `.;  :        
+   ;    \        ;                     ;    "-._:  ;        
+  :      `.      :                     :         \/         
+  ;       /"-.    ;                    :                    
+ :       /    "-. :                  : ;                    
+ :     .'        T-;                 ; ;        
+ ;    :          ; ;                /  :        
+ ;    ;          : :              .'    ;       
+:    :            ;:         _..-"\     :       
+:     \           : ;       /      \     ;      
+;    . '.         '-;      /        ;    :      
+;  \  ; :           :     :         :    '-.      
+'.._L.:-'           :     ;  aibf   ;    . `. 
+                     ;    :          :  \  ; :  
+                     :    '-..       '.._L.:-'  
+                      ;     , `.                
+                      :   \  ; :                
+                      '..__L.:-'
 
 
 
+*/
 
+
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract AIBF is ERC721, Ownable {
     using Address for address;
@@ -19,7 +66,7 @@ contract AIBF is ERC721, Ownable {
     bool public saleActive; // public sale flag (false on deploy)
     
 
-    constructor() ERC721("AI Best Friend", "AIBF") {}
+    constructor() Ownable(msg.sender) ERC721("AI Best Friend", "AIBF") {}
 
     //mint settings
     modifier mintParameters(uint256 numberToMint) {
