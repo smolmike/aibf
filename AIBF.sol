@@ -47,111 +47,55 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract AIBF is ERC721, Ownable {
-    using Address for address;
-    using Counters for Counters.Counter;
+contract AIBF is ERC721, Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    
-    uint256 public constant MAX_PUBLIC_MINT = 3;
     uint256 public totalSupply;
-    uint256 public price = 0.01 ether;
-    uint256 public reserveSupply = 6;
-    uint256 public maxPerWallet = 3;
-    uint256 public constant MAX_SUPPLY = 306;
-    bool public saleActive; // public sale flag (false on deploy)
-    
+    uint256 public constant MAX_SUPPLY = 150; // Total supply
+    string private baseURI;
 
-    constructor() Ownable(msg.sender) ERC721("AI Best Friend", "AIBF") {}
+     constructor() ERC721("AI Best Friend", "AIBF") Ownable(msg.sender){
+        totalSupply = 0; // Initialize total supply to 0
+    }
 
-    //mint settings
-    modifier mintParameters(uint256 numberToMint) {
-
-        uint256 currentTokens = balanceOf(msg.sender);
-
-        require(currentTokens + numberToMint <= maxPerWallet, "Exceeds maximum number of tokens per wallet");
-
-        require(saleActive, "Sale not live");
-        _;
-        require(numberToMint < MAX_PUBLIC_MINT, "Save some for the rest of us!");
-
-        require(msg.value == price * numberToMint, "Not enough to adopt a K9");
-
-        require(numberToMint > 0, "Zero mint");
-
+    // Owner-only function to mint tokens up to the maximum supply to a specified address
+    function mintTokens(address to, uint256 numberToMint) external onlyOwner {
         require(totalSupply.add(numberToMint) <= MAX_SUPPLY, "Exceeds max supply");
-
-    
-    }
-
-     function _mintTokens(address to, uint256 numberToMint) internal {
         require(numberToMint > 0, "Zero mint");
-        uint256 currentSupply_ = totalSupply; // memory variable
-        for (uint256 i; i < numberToMint; ++i) {
-            _safeMint(to, currentSupply_++); // mint then increment
+
+        uint256 currentSupply_ = totalSupply.add(1); // Start from token ID 1
+        for (uint256 i = 0; i < numberToMint; ++i) {
+            _safeMint(to, currentSupply_++); // Mint to the specified address
         }
-        totalSupply = currentSupply_; // update storage
+        totalSupply = currentSupply_.sub(1); // Update totalSupply
     }
 
-
-    //Function to set sale active
-
-    function setSaleActive(bool state) external onlyOwner {
-        saleActive = state;
-    }
-
-    // Mint for the Dog Groomer
-
-    function dogGroomer(address to, uint256 numberToMint) external onlyOwner {
-        uint256 _reserveSupply = reserveSupply;
-        require(numberToMint <= _reserveSupply, "Exceeds reserve limit");
-        reserveSupply = _reserveSupply - numberToMint;
-
-        _mintTokens(to, numberToMint);
-    }
-
-    //Public Mint
-
-    function mint(uint256 numberToMint) external payable mintParameters(numberToMint) {
-        _mintTokens(msg.sender, numberToMint);
-    }
-
-
-    // Take out ETH
-      function withdraw() public onlyOwner {
+    // Withdraw ETH from contract with reentrancy guard
+    function withdraw() public onlyOwner nonReentrant {
         uint256 balance = address(this).balance;
         payable(msg.sender).transfer(balance);
     }
 
-
-
-   // Set the Metadata
-
-    string private baseURI;
-
-      function _baseURI() internal view override returns (string memory) {
-        return baseURI;
-    }
-
+    // Set the Metadata URI
     function setMetadata(string memory metadata) public onlyOwner {
         baseURI = metadata;
     }
 
-    //Token Tracking
-    Counters.Counter private tokens;
+    // Override baseURI function
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
+    }
 
-        function getTokensFromAddress(address wallet) public view returns(uint256[] memory) {
+    // Token Tracking with IDs starting at 1
+    function getTokensFromAddress(address wallet) public view returns(uint256[] memory) {
         uint256 tokensHeld = balanceOf(wallet);
-        uint256 currentTokens = tokens.current();
+        uint256[] memory _tokens = new uint256[](tokensHeld);
         uint256 x = 0;
 
-        uint256[] memory _tokens = new uint256[](tokensHeld);
-        
-        for (uint256 i;i < currentTokens;i++) {
+        for (uint256 i = 1; i <= totalSupply; i++) { // Start from 1
             if (ownerOf(i) == wallet) {
                 _tokens[x] = i;
                 x++;
@@ -161,7 +105,8 @@ contract AIBF is ERC721, Ownable {
         return _tokens;
     }
 
-    function maxSupply() external view returns(uint256) {
-        return tokens.current();
+    // Returns the current max supply
+   function maxSupply() external pure returns(uint256) {
+    return MAX_SUPPLY;
     }
 }
