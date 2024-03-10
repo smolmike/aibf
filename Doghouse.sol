@@ -36,8 +36,6 @@ contract TheDogHouse is AccessControlEnumerable, IERC721Receiver, ReentrancyGuar
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    // ASCII art remains here
-
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     IERC721 public nft;
     IERC20 public rewardToken;
