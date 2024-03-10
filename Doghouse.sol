@@ -3,7 +3,6 @@
 /*
 Welcome to the DOGHOUSE 8===8
 
-Created by @ITZMIZZLE
               _
             ,/A\,
           .//`_`\\,
